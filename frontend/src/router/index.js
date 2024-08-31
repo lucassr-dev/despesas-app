@@ -25,7 +25,7 @@ const router = createRouter({
     {
       path: '/grupos',
       name: 'grupos',
-      component: () => import('../views/GrupsView.vue'),
+      component: () => import('../views/GroupsView.vue'),
       beforeEnter: requireAuth
     },
     {
