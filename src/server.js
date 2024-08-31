@@ -10,8 +10,8 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 sequelize.sync().then(() => {
-  console.log('Database connected');
+  console.log('Banco de dados conectado');
   app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`O servidor está rodando na porta ${PORT}`);
   });
 });
