@@ -1,11 +1,40 @@
 <script setup>
-import { RouterView } from 'vue-router'
+import { ref } from 'vue'
+import { RouterLink, RouterView } from 'vue-router'
+
+const isLoggedIn = ref(false)
 </script>
 
 <template>
-  <header>
-    <h1 class="text-2xl font-bold text-center my-4">Gerenciador de Despesas</h1>
-  </header>
+  <div class="min-h-screen bg-gray-100">
+    <header class="bg-white shadow-md">
+      <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <RouterLink to="/" class="text-gray-700 hover:text-gray-900">Início</RouterLink>
+          <RouterLink to="/grupos" class="text-gray-700 hover:text-gray-900">Grupos</RouterLink>
+          <RouterLink to="/despesas" class="text-gray-700 hover:text-gray-900">Despesas</RouterLink>
+        </div>
+        <div class="text-2xl font-bold text-blue-600">
+          ExpenseShare
+        </div>
+        <div>
+          <template v-if="!isLoggedIn">
+            <RouterLink to="/login" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mr-2">Login</RouterLink>
+            <RouterLink to="/register" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Cadastro</RouterLink>
+          </template>
+          <button v-else @click="logout" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">Logout</button>
+        </div>
+      </nav>
+    </header>
 
-  <RouterView />
+    <RouterView />
+  </div>
 </template>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+body {
+  font-family: 'Poppins', sans-serif;
+}
+</style>
