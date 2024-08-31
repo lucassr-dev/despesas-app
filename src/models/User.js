@@ -1,7 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 const bcrypt = require('bcryptjs');
-const Group = require('./Group');
 
 const User = sequelize.define('User', {
   name: {
@@ -30,8 +29,5 @@ User.beforeCreate(async (user) => {
 User.prototype.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };
-
-User.hasMany(Group, { as: 'groups', foreignKey: 'creatorId' });
-Group.belongsTo(User, { as: 'creator' });
 
 module.exports = User;
