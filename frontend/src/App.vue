@@ -6,7 +6,7 @@ const isLoggedIn = ref(false)
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100">
+  <div class="min-h-screen flex flex-col bg-gray-100">
     <header class="bg-white shadow-md">
       <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
         <div class="flex items-center space-x-4">
@@ -27,7 +27,9 @@ const isLoggedIn = ref(false)
       </nav>
     </header>
 
-    <RouterView />
+    <main class="flex-grow">
+      <RouterView />
+    </main>
   </div>
 </template>
 
