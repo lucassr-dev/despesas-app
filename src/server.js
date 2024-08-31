@@ -3,7 +3,8 @@ const cors = require('cors');
 const sequelize = require('./config/database');
 const authRoutes = require('./routes/authRoutes');
 const groupRoutes = require('./routes/groupRoutes');
-const { User, Group } = require('./models');
+const expenseRoutes = require('./routes/expenseRoutes');
+const { User, Group, Expense } = require('./models');
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/expenses', expenseRoutes);
 
 const PORT = process.env.PORT || 3000;
 
