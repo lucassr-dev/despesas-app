@@ -45,15 +45,19 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const email = ref('')
 const password = ref('')
 const router = useRouter()
+const authStore = useAuthStore()
 
 const handleLogin = async () => {
-  // Aqui você implementará a lógica de autenticação
-  console.log('Login com:', email.value, password.value)
-  // Por enquanto, vamos apenas redirecionar para a página inicial
-  router.push('/')
+  const success = await authStore.login(email.value, password.value)
+  if (success) {
+    router.push('/')
+  } else {
+    alert('Falha no login. Por favor, verifique suas credenciais.')
+  }
 }
 </script>

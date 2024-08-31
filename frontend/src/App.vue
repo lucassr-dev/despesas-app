@@ -1,8 +1,19 @@
 <script setup>
-import { ref } from 'vue'
-import { RouterLink, RouterView } from 'vue-router'
+import {  onMounted } from 'vue'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
-const isLoggedIn = ref(false)
+const authStore = useAuthStore()
+const router = useRouter()
+
+onMounted(() => {
+  authStore.checkAuth()
+})
+
+const logout = () => {
+  authStore.logout()
+  router.push('/login')
+}
 </script>
 
 <template>
@@ -18,7 +29,7 @@ const isLoggedIn = ref(false)
           ExpenseShare
         </div>
         <div>
-          <template v-if="!isLoggedIn">
+          <template v-if="!authStore.isAuthenticated">
             <RouterLink to="/login" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mr-2">Login</RouterLink>
             <RouterLink to="/register" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Cadastro</RouterLink>
           </template>
