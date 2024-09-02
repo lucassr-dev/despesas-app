@@ -1,58 +1,99 @@
-const { Group, User } = require('../models');
+const Group = require('../models/Group');
+const User = require('../models/User');
 
 exports.createGroup = async (req, res) => {
   try {
     const { name, description } = req.body;
-    const group = await Group.create({
-      name,
-      description,
-      creatorId: req.user.id,
+    const group = await Group.create({ 
+      name, 
+      description, 
+      creatorId: req.user.id 
     });
     await group.addMember(req.user.id);
-    res.status(201).json({ message: 'Grupo criado com sucesso', group });
+    res.status(201).json({ message: 'Grupo criado com sucesso', groupId: group.id });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.updateGroup = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const group = await Group.findByPk(req.params.groupId);
+    if (!group) {
+      return res.status(404).json({ error: 'Grupo não encontrado' });
+    }
+    if (group.creatorId !== req.user.id) {
+      return res.status(403).json({ error: 'Você não tem permissão para editar este grupo' });
+    }
+    await group.update({ name, description });
+    res.json({ message: 'Grupo atualizado com sucesso' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.deleteGroup = async (req, res) => {
+  try {
+    const group = await Group.findByPk(req.params.groupId);
+    if (!group) {
+      return res.status(404).json({ error: 'Grupo não encontrado' });
+    }
+    if (group.creatorId !== req.user.id) {
+      return res.status(403).json({ error: 'Você não tem permissão para excluir este grupo' });
+    }
+    await group.destroy();
+    res.json({ message: 'Grupo excluído com sucesso' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 };
 
 exports.getGroups = async (req, res) => {
   try {
-    const groups = await Group.findAll({
-      include: [
-        {
-          model: User,
-          as: 'members',
-          attributes: ['id', 'name', 'email'],
-          through: { attributes: [] },
-        },
-      ],
-      where: {
-        '$members.id$': req.user.id,
-      },
-    });
+    const user = await User.findByPk(req.user.id);
+    const groups = await user.getGroups();
     res.json(groups);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ error: error.message });
   }
 };
 
-exports.inviteUser = async (req, res) => {
+exports.getGroupDetails = async (req, res) => {
   try {
-    const { groupId, email } = req.body;
-    const group = await Group.findByPk(groupId);
+    const group = await Group.findByPk(req.params.groupId, {
+      include: [
+        { model: User, as: 'members', attributes: ['id', 'name', 'email'] },
+        { model: User, as: 'creator', attributes: ['id', 'name', 'email'] }
+      ]
+    });
     if (!group) {
-      return res.status(404).json({ message: 'Grupo não encontrado' });
+      return res.status(404).json({ error: 'Grupo não encontrado' });
     }
-    if (group.creatorId !== req.user.id) {
-      return res.status(403).json({ message: 'Apenas o criador do grupo pode convidar usuários' });
+    res.json(group);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.inviteToGroup = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const group = await Group.findByPk(req.params.groupId);
+    if (!group) {
+      return res.status(404).json({ error: 'Grupo não encontrado' });
     }
-    const userToInvite = await User.findOne({ where: { email } });
-    if (!userToInvite) {
-      return res.status(404).json({ message: 'Usuário não encontrado' });
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
     }
-    await group.addMember(userToInvite.id);
+    const isMember = await group.hasMember(user);
+    if (isMember) {
+      return res.status(400).json({ error: 'Usuário já é membro deste grupo' });
+    }
+    await group.addMember(user);
     res.json({ message: 'Usuário convidado com sucesso' });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ error: error.message });
   }
 };

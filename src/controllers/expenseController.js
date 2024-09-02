@@ -1,71 +1,109 @@
-const { Expense, Group, User } = require('../models');
+const Expense = require('../models/Expense');
+const Group = require('../models/Group');
+const User = require('../models/User');
 
 exports.createExpense = async (req, res) => {
   try {
-    const { groupId, description, amount, participantIds } = req.body;
+    const { description, amount, groupId, participantIds } = req.body;
     const group = await Group.findByPk(groupId);
     if (!group) {
-      return res.status(404).json({ message: 'Grupo não encontrado' });
+      return res.status(404).json({ error: 'Grupo não encontrado' });
     }
-
     const expense = await Expense.create({
       description,
       amount,
-      GroupId: groupId,
+      groupId,
       paidById: req.user.id,
     });
-
     await expense.setParticipants(participantIds);
-
-    res.status(201).json({ message: 'Despesa criada com sucesso', expense });
+    res.status(201).json({ message: 'Despesa criada com sucesso', expenseId: expense.id });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.updateExpense = async (req, res) => {
+  try {
+    const { description, amount, participantIds } = req.body;
+    const expense = await Expense.findByPk(req.params.expenseId);
+    if (!expense) {
+      return res.status(404).json({ error: 'Despesa não encontrada' });
+    }
+    if (expense.paidById !== req.user.id) {
+      return res.status(403).json({ error: 'Você não tem permissão para editar esta despesa' });
+    }
+    await expense.update({ description, amount });
+    await expense.setParticipants(participantIds);
+    res.json({ message: 'Despesa atualizada com sucesso' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.deleteExpense = async (req, res) => {
+  try {
+    const expense = await Expense.findByPk(req.params.expenseId);
+    if (!expense) {
+      return res.status(404).json({ error: 'Despesa não encontrada' });
+    }
+    if (expense.paidById !== req.user.id) {
+      return res.status(403).json({ error: 'Você não tem permissão para excluir esta despesa' });
+    }
+    await expense.destroy();
+    res.json({ message: 'Despesa excluída com sucesso' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 };
 
 exports.getGroupExpenses = async (req, res) => {
   try {
-    const { groupId } = req.params;
     const expenses = await Expense.findAll({
-      where: { GroupId: groupId },
+      where: { groupId: req.params.groupId },
       include: [
         { model: User, as: 'paidBy', attributes: ['id', 'name'] },
-        { model: User, as: 'participants', attributes: ['id', 'name'], through: { attributes: [] } },
+        { model: User, as: 'participants', attributes: ['id', 'name'] },
       ],
     });
     res.json(expenses);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ error: error.message });
   }
 };
 
 exports.calculateBalances = async (req, res) => {
   try {
-    const { groupId } = req.params;
-    const expenses = await Expense.findAll({
-      where: { GroupId: groupId },
+    const group = await Group.findByPk(req.params.groupId, {
       include: [
-        { model: User, as: 'paidBy', attributes: ['id', 'name'] },
-        { model: User, as: 'participants', attributes: ['id', 'name'], through: { attributes: [] } },
-      ],
+        { model: User, as: 'members' },
+        { 
+          model: Expense,
+          include: [
+            { model: User, as: 'paidBy' },
+            { model: User, as: 'participants' }
+          ]
+        }
+      ]
     });
 
+    if (!group) {
+      return res.status(404).json({ error: 'Grupo não encontrado' });
+    }
+
     const balances = {};
-    expenses.forEach(expense => {
+    group.members.forEach(member => {
+      balances[member.id] = 0;
+    });
+
+    group.Expenses.forEach(expense => {
       const paidBy = expense.paidBy.id;
       const amount = parseFloat(expense.amount);
       const participantsCount = expense.participants.length;
-      const sharePerPerson = amount / participantsCount;
+      const shareAmount = amount / participantsCount;
 
+      balances[paidBy] += amount;
       expense.participants.forEach(participant => {
-        const participantId = participant.id;
-        if (!balances[participantId]) balances[participantId] = 0;
-        if (!balances[paidBy]) balances[paidBy] = 0;
-
-        if (participantId !== paidBy) {
-          balances[participantId] -= sharePerPerson;
-          balances[paidBy] += sharePerPerson;
-        }
+        balances[participant.id] -= shareAmount;
       });
     });
 
@@ -76,6 +114,6 @@ exports.calculateBalances = async (req, res) => {
 
     res.json(formattedBalances);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ error: error.message });
   }
 };

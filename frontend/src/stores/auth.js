@@ -1,54 +1,31 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
+import api from '@/services/api'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
-    token: null,
+    token: localStorage.getItem('token')
   }),
   getters: {
-    isAuthenticated: (state) => !!state.token,
+    isLoggedIn: (state) => !!state.token
   },
   actions: {
     async login(email, password) {
-      try {
-        const response = await axios.post('http://localhost:3000/api/auth/login', { email, password })
-        this.token = response.data.token
-        this.user = response.data.user
-        localStorage.setItem('token', this.token)
-        return true
-      } catch (error) {
-        console.error('Erro no login:', error)
-        return false
-      }
+      const response = await api.post('/users/login', { email, password })
+      this.token = response.data.token
+      this.user = response.data.user
+      localStorage.setItem('token', this.token)
     },
     async register(name, email, password) {
-      try {
-        await axios.post('http://localhost:3000/api/auth/register', { name, email, password })
-        return true
-      } catch (error) {
-        console.error('Erro no registro:', error)
-        return false
-      }
+      const response = await api.post('/users/register', { name, email, password })
+      this.token = response.data.token
+      this.user = response.data.user
+      localStorage.setItem('token', this.token)
     },
     logout() {
       this.user = null
       this.token = null
       localStorage.removeItem('token')
-    },
-    async checkAuth() {
-      const token = localStorage.getItem('token')
-      if (token) {
-        this.token = token
-        try {
-          const response = await axios.get('http://localhost:3000/api/auth/me', {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-          this.user = response.data
-        } catch (error) {
-          this.logout()
-        }
-      }
-    },
-  },
+    }
+  }
 })
